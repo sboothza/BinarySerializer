@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 
 namespace BinarySerializer
 {
@@ -105,9 +104,9 @@ namespace BinarySerializer
 			{
 				Write(stream, source);
 			}
-			else if (source is IEnumerable enumerable && source is not string)
+			else if (source is IEnumerable and not string)
 			{
-				if (source is not IDictionary)
+				if (source is not IDictionary dict)
 				{
 					var list = (IList)source;
 					stream.WriteByteRaw((byte)DataType.List);
@@ -119,9 +118,8 @@ namespace BinarySerializer
 				}
 				else
 				{
-					var dict = (IDictionary)source;
 					stream.WriteByteRaw((byte)DataType.Dictionary);
-					stream.WriteByteRaw((byte)(dict.Count));
+					stream.WriteByteRaw((byte)dict.Count);
 
 					foreach (var key in dict.Keys)
 					{
@@ -142,7 +140,7 @@ namespace BinarySerializer
 					prop = p,
 					order = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Order ?? 0,
 					ignore = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Ignore ?? false
-				}).Where(p => p.prop.CanRead && p.prop.CanWrite && !p.ignore)
+				}).Where(p => p.prop is { CanRead: true, CanWrite: true } && !p.ignore)
 					.OrderBy(s => s.order);
 
 				foreach (var prop in props)
@@ -168,10 +166,9 @@ namespace BinarySerializer
 		{
 			var dataType = (DataType)stream.ReadByte();
 			if (dataType is DataType.Null)
-			{
 				return null;
-			}
-			else if (dataType is DataType.List)
+
+			if (dataType is DataType.List)
 			{
 				var count = stream.ReadByte();
 				IList list = null;
@@ -199,7 +196,7 @@ namespace BinarySerializer
 				}
 				return list;
 			}
-			else if (dataType == DataType.Dictionary)
+			if (dataType == DataType.Dictionary)
 			{
 				var count = stream.ReadByte();
 				var dict = (IDictionary)Activator.CreateInstance(type);
@@ -214,20 +211,20 @@ namespace BinarySerializer
 				}
 				return dict;
 			}
-			else if (dataType == DataType.Object)
+			if (dataType == DataType.Object)
 			{
 				object result = Activator.CreateInstance(type);
 
 				var properties = result.GetType()
-					.GetProperties();
+				                       .GetProperties();
 
 				var props = properties.Select(p => new
-				{
-					prop = p,
-					order = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Order ?? 0,
-					ignore = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Ignore ?? false
-				}).Where(p => p.prop.CanRead && p.prop.CanWrite && !p.ignore)
-					.OrderBy(s => s.order);
+				                      {
+					                      prop = p,
+					                      order = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Order ?? 0,
+					                      ignore = ((OrderAttribute)p.GetCustomAttributes(typeof(OrderAttribute), false).FirstOrDefault())?.Ignore ?? false
+				                      }).Where(p => p.prop is { CanRead: true, CanWrite: true } && !p.ignore)
+				                      .OrderBy(s => s.order);
 
 				foreach (var prop in props)
 				{
@@ -237,16 +234,9 @@ namespace BinarySerializer
 
 				return result;
 			}
-			else
-			{
-				return stream.Read(dataType, type);
-			}
+			return stream.Read(dataType, type);
 		}
 
-		private static bool IsPrimitive(object original)
-		{
-			return ((original is bool vBool) || (original is byte vByte) || (original is Int16 vInt16) || (original is Int32 vInt32) || (original is Int64 vInt64) || (original is float vFloat) || (original is double vDouble) || (original is DateTime vDateTime) || (original is string strValue));
-		}
-
+		private static bool IsPrimitive(object original) => original is bool or byte or Int16 or Int32 or Int64 or float or double or DateTime or string;
 	}
 }

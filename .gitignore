@@ -1,0 +1,7 @@
+.idea/
+BinarySerializer.sln.DotSettings.user
+BinarySerializer/bin/
+BinarySerializer/obj/
+Generator/obj/
+Tests/bin/
+Tests/obj/
